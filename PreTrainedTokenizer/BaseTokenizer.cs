@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using Math;
+using System.Linq;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace PreTrainedTokenizer
 {
-    public class BaseTokenizer
+    public abstract class BaseTokenizer
     {
         public string VocabFileName{get;set;}
         public string VocabUrl{get;set;}
+        public string MergeFileName{get;set;}
         public string MergeURL{get;set;}
         public string InputSize{get;set;}
         public string EOSToken{get;set;}
@@ -15,99 +18,86 @@ namespace PreTrainedTokenizer
         public string PADToken{get;set;}
         public string MaskToken{get;set;}
         public string SEPToken{get;set;}
+        public Dictionary<string,int> Encoder{get;set;}
+        //TODO : to create the decoder just fill the Encoder and do a Decoder = Encoder.Reverse()
+        public Dictionary<int,string> Decoder{get;set;}
         
         public List<string> ATokens{get;set;}
 
-        public int MaxLength {get;set;}
+        public long MaxLength {get;set;}
 
-        public BaseTokenizer(int maxlen = Math.Pow(10,12), Dictionary<string,string> values = null)
+        public BaseTokenizer(long maxlen = 1000000000000, Dictionary<string,string> values = null, List<string> additionalTokens = null)
         {
-            this.FillEmptyTokens();
+            this.EOSToken = "";
+            this.BOSToken = "";
+            this.SEPToken = "";
+            this.PADToken = "";
+            this.MaskToken = "";
+            this.ATokens = new List<string>();
             this.MaxLength = maxlen;
-            if(values)
+
+            if(values != null)
             {
                 foreach(KeyValuePair<string,string> entry in values)
                 {
-                    
+                    switch(entry.Key)
+                    {
+                        case "EOS" :
+                            this.EOSToken = entry.Value;
+                            break;
+                        case "BOS" :
+                            this.BOSToken = entry.Value;
+                            break;
+                        case "SEP" :
+                            this.SEPToken = entry.Value;
+                            break;
+                        case "PAD" :
+                            this.PADToken = entry.Value;
+                            break;
+                        case "Mask" :
+                            this.MaskToken = entry.Value;
+                            break;
+                        default :
+                            break;
+                    }
                 }
             }
+            if(additionalTokens!= null)
+            {
+                this.ATokens.AddRange(additionalTokens);
+            }
+        }
+        public void AddAdditionalTokens(List<string> tokens)
+        {
+            this.ATokens.AddRange(tokens);
+        }
+        public void AddAdditionalToken(string token)
+        {
+            this.ATokens.Add(token);
         }
 
-        public void FillDictEmptyString()
+        public abstract void LoadModel();
+        public abstract void SaveModel();
+
+        public abstract void SaveVocabulary();
+        public virtual List<string> Decode(int[] encoded)
         {
-            this.SpecialTokens = new Dictionary<string, string>();
-            this.SpecialTokens.Add("bos_token","");
-            this.SpecialTokens.Add("eos_token","");
-            this.SpecialTokens.Add("cls_token","");
-            this.SpecialTokens.Add("mask_token","");
-            this.SpecialTokens.Add("sep_token","");
-            this.SpecialTokens.Add("pad_token","");
-            this.SpecialTokens.Add("unk_token","");
-            this.ATokens = new List<string>();
+            return encoded.Select( e => Decoder[e] ).ToList();
         }
-        public string BOSToken()
+        public virtual List<string> ParallelDecode(int[] encoded)
         {
-            if(SpecialTokens["bos_token"] =="")
-            {
-                Console.WriteLine("BOS Token not initialized");
-            }
-            return SpecialTokens["bos_token"];
+            return encoded.AsParallel().Select( e => Decoder[e] ).ToList();
         }
-        public string EOSToken()
+        
+        public virtual List<int> Encode(string[] text)
         {
-            if(SpecialTokens["eos_token"] =="")
-            {
-                Console.WriteLine("EOS Token not initialized");
-            }
-            return SpecialTokens["eos_token"];
+            return text.Select( e => Encoder[e] ).ToList();
         }
-        public string UNKToken()
+        public virtual List<int> ParallelEncode(string[] text)
         {
-            if(SpecialTokens["unk_token"] =="")
-            {
-                Console.WriteLine("UNK Token not initialized");
-            }
-            return SpecialTokens["unk_token"];
+            return text.AsParallel().Select( e => Encoder[e] ).ToList();
         }
-        public string SEPToken()
-        {
-            if(SpecialTokens["sep_token"] =="")
-            {
-                Console.WriteLine("SEP Token not initialized");
-            }
-            return SpecialTokens["sep_token"];
-        }
-        public string PADToken()
-        {
-            if(SpecialTokens["pad_token"] =="")
-            {
-                Console.WriteLine("PAD Token not initialized");
-            }
-            return SpecialTokens["pad_token"];
-        }
-        public string CLSToken()
-        {
-            if(SpecialTokens["cls_token"] =="")
-            {
-                Console.WriteLine("CLS Token not initialized");
-            }
-            return SpecialTokens["cls_token"];
-        }
-        public string MaskToken()
-        {
-            if(SpecialTokens["mask_token"] =="")
-            {
-                Console.WriteLine("MASK Token not initialized");
-            }
-            return SpecialTokens["mask_token"];
-        }
-        public List<string> AdditionalTokens()
-        {
-            if(this.ATokens.Count==0)
-            {
-                Console.WriteLine("No additional tokens");
-            }
-            return this.ATokens;
-        }
+        
+        
     }
 }
