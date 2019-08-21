@@ -13,7 +13,7 @@ module BaseTokenizer =
         member this.VocabUrl = vUrl
         member this.MergeUrl = mUrl
         member this.InputSize = sizeInput
-
+        
         member this.SpecialTokens = 
                     let dict = new Dictionary<string,string>()
                     dict
@@ -26,7 +26,7 @@ module BaseTokenizer =
                         |> DictAdd "mask_token" ""
                         |> DictAdd "additional_special_tokens" ""
 
-       
+
         member this.BOSToken() = 
             this.SpecialTokens.["bos_token"]
 
@@ -51,5 +51,6 @@ module BaseTokenizer =
         member this.AddToken() = 
             this.SpecialTokens.["additional_special_tokens"]
 
-        
+        member this.Length() = 
+            this
             
