@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.IO;
-using System.Threading.Tasks;
+using System.Text.Json;
+using Refit;
 
 namespace PreTrainedTokenizer
 {
@@ -96,6 +98,14 @@ namespace PreTrainedTokenizer
         public virtual List<int> ParallelEncode(string[] text)
         {
             return text.AsParallel().Select( e => Encoder[e] ).ToList();
+        }
+        public async virtual void LoadVocabularyFromUrl(string url)
+        {
+            var vocabGetter = RestService.For<IJsonRequests>(url);
+            this.Decoder = await vocabGetter.GetVocab();
+            this.Encoder = this.Decoder.Reverse().ToDictionary(x=>x.Value,x=>x.Key);
+
+
         }
         
         
